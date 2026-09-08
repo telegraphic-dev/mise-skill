@@ -34,7 +34,93 @@ Authoritative docs: <https://mise.jdx.dev/>
 
 Do **not** use this skill merely to update mise itself. Verify the installed version and follow the upstream release guidance; changing a shared developer tool is an environment change, not routine project work.
 
-## Start Here
+## Installation
+
+Install the **mise binary** before using any workflow below. Installing this skill only provides guidance; it does not install mise. Verify first:
+
+```sh
+mise --version
+```
+
+### macOS and Linux — recommended upstream binary
+
+The official `mise.run` installer downloads a prebuilt binary and installs it to `~/.local/bin/mise` by default. It is the upstream-recommended method for macOS and Linux; use the documented GPG verification path when independent installer verification is required.
+
+```sh
+# Inspect the installer first; do not blindly pipe remote code into a shell.
+curl -fsSL https://mise.run -o /tmp/mise-install.sh
+less /tmp/mise-install.sh
+sh /tmp/mise-install.sh
+
+# The binary may not yet be on PATH.
+~/.local/bin/mise --version
+```
+
+To install to a deliberate system path instead, use `MISE_INSTALL_PATH` and obtain approval for the privileged write:
+
+```sh
+curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
+mise --version
+```
+
+For a user who explicitly wants installation **and** shell activation in one step, upstream provides shell-specific installers:
+
+```sh
+curl https://mise.run/bash | sh  # installs and updates ~/.bashrc
+curl https://mise.run/zsh | sh   # installs and updates ~/.zshrc
+curl https://mise.run/fish | sh  # installs and updates Fish config
+```
+
+These modify shell configuration. Do not run them for an agent, CI job, or another user without explicit approval.
+
+### Package-manager alternatives
+
+Use the platform-native option when system package management is required. Package manager releases can lag the official binary.
+
+```sh
+# macOS (upstream prefers mise.run over Homebrew)
+brew install mise
+
+# Ubuntu 26.04+
+sudo add-apt-repository -y ppa:jdxcode/mise
+sudo apt update && sudo apt install -y mise
+
+# Debian 11+ / Ubuntu 22.04+
+sudo apt install -y extrepo
+sudo extrepo enable mise
+sudo apt update && sudo apt install -y mise
+
+# Alpine / Arch
+apk add mise
+sudo pacman -S mise
+
+# Windows PowerShell: Scoop is upstream-recommended; winget is also supported.
+scoop install mise
+winget install jdx.mise
+```
+
+For Fedora/RHEL, Nix, Snap, Cargo, npm-distributed binary, Docker, and other platforms, use the authoritative installation matrix: <https://mise.jdx.dev/installing-mise.html>
+
+### Verify and activate for a human shell
+
+Activation is optional. `mise exec` and `mise run` work without it and are preferred for agents, scripts, and CI.
+
+```sh
+# Verify the binary before editing a shell profile.
+mise --version
+mise doctor
+
+# Bash
+printf '\neval "$(mise activate bash)"\n' >> ~/.bashrc
+
+# Zsh
+printf '\neval "$(mise activate zsh)"\n' >> "${ZDOTDIR-$HOME}/.zshrc"
+
+# Fish
+printf '\nmise activate fish | source\n' >> ~/.config/fish/config.fish
+```
+
+Start a fresh shell, then verify `mise doctor`, `which mise`, and `mise --version`. For PowerShell, use the exact profile command in the upstream installation documentation; profile locations vary.
 
 ### 1. Detect and inspect configuration
 
@@ -48,33 +134,9 @@ mise tasks ls
 
 Then read each project config before executing tasks or trusting it. Look particularly for `[env]`, `env` files, `[tasks]`, hooks, and `includes`; configuration can run commands or load secrets.
 
-For an untrusted checkout, inspect without evaluating configuration:
-
-```sh
-mise --no-config config ls
-find .. -name mise.toml -o -name .mise.toml -o -name .tool-versions
-```
-
 Do not run `mise trust` blindly. Trusting a config authorizes it for mise, including its hooks. Ask for approval when a previously untrusted configuration must be trusted or when it contains behavior you cannot explain.
 
-### 2. Verify mise is available
-
-```sh
-mise --version
-mise doctor
-```
-
-Install mise only when the user asks for it or a project cannot run without it. Upstream installation guidance:
-
-```sh
-# macOS/Linux; review the installer source before piping it to a shell.
-curl https://mise.run | sh
-~/.local/bin/mise --version
-```
-
-Package-manager installation and Windows instructions: <https://mise.jdx.dev/installing-mise.html>
-
-### 3. Use the project environment without shell activation
+### 2. Use the project environment without shell activation
 
 Prefer these forms in agents, scripts, CI, and remote commands:
 
